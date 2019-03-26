@@ -338,6 +338,10 @@
             {
                 this.input = window.localStorage.getItem('input') || this.input;
                 this.mode = window.localStorage.getItem('mode') == "true";
+                if (window.localStorage.getItem('mode') == null)
+                {
+                    this.mode = 1;
+                }
 
                 var _this = this;
                 window.onbeforeunload = function()
