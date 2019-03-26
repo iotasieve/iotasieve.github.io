@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Base64 converter</title>
     <style>
         body {
             margin: 0;
@@ -16,7 +16,7 @@
         #root {
             display: flex;
             font-family: monospace;
-            
+
             flex-direction: column;
             height: 100vh;
             background: #212121;
@@ -31,7 +31,7 @@
         }
 
         #root .app {
-            flex:1;
+            flex: 1;
             border-top: 1px solid rgba(0, 0, 0, 0.2);
             display: flex;
         }
@@ -116,6 +116,9 @@
                 flex-direction: column;
 
             }
+            .title{
+                display: none;
+            }
 
             .menu {
                 flex-wrap: wrap;
@@ -131,7 +134,7 @@
             }
         }
 
-        @media screen and (max-width: 555px) {
+        @media screen and (max-width: 700px) {
             .unicode {
                 justify-content: space-between !important;
                 width: 100%;
@@ -208,8 +211,8 @@
         .unicode>span {
             padding-right: 20px;
         }
-        .splash
-        {
+
+        .splash {
             position: absolute;
             top: 0;
             bottom: 0;
@@ -218,18 +221,32 @@
             right: 0;
             background: #212121;
             z-index: 100;
+            display: flex;
+            justify-content: center;
+            font-family: monospace;
+            align-items: center;
+            color: #eee;
+            font-size: 3vw;
         }
-        .splash.loaded
-        {
+
+        .splash.loaded {
             visibility: hidden;
             opacity: 0;
+        }
+
+        .title {
+            align-self: center;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 0 10px;
         }
     </style>
 </head>
 
 <body>
-    <div class="splash"></div>
+    <div class="splash">
+    </div>
     <div id="root">
+
         <div class="menu">
             <div class="unicode">
                 <span>Unicode support: </span>
@@ -241,6 +258,8 @@
                     </div>
                 </label>
             </div>
+            <div class="title">Base64 Encoder/Decoder</div>
+
             <div class="cont">
                 <div class="btn" @click="swap">SWITCH MODE</div>
                 <div class="breadcrumb">
@@ -264,13 +283,13 @@
     <script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
     <script>
         var splash = document.querySelector('.splash');
-        window.onload = function()
-        {
+        window.onload = function () {
             splash.classList.add('loaded');
-            setTimeout(function() {
+            setTimeout(function () {
                 splash.style.display = "none";
             }, 1000);
         }
+
         function b64EncodeUnicode(str) {
             return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
                 function toSolidBytes(match, p1) {
