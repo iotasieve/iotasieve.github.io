@@ -336,13 +336,15 @@
             },
             mounted: function()
             {
-                this.input = window.localStorage.getItem('input');
+                this.input = window.localStorage.getItem('input') || this.input;
+                this.mode = window.localStorage.getItem('mode') == "true";
 
                 var _this = this;
                 window.onbeforeunload = function()
                 {
                     console.log(_this.input);
                     window.localStorage.setItem('input', _this.input);
+                    window.localStorage.setItem('mode', _this.mode);
                 }
             },
             methods: {
