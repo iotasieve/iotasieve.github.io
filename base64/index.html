@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        #root {
+            display: flex;
+            font-family: monospace;
+            flex-direction: column;
+            height: 100vh;
+            background: #212121;
+        }
+
+        .app .to {
+            overflow: auto;
+            padding: 20px;
+            color: #eee;
+            font-size: 16px;
+
+        }
+
+        #root .app {
+            flex-grow: 1;
+            border-top: 1px solid rgba(0, 0, 0, 0.2);
+            display: flex;
+        }
+
+        #root .menu {
+            justify-content: space-between;
+            display: flex;
+            padding: 20px;
+        }
+
+        .error {
+            color: #ff898d;
+        }
+
+        .btn {
+            margin-right: 20px;
+            color: #212121;
+            font-weight: bold;
+            transition: 1s box-shadow;
+            cursor: pointer;
+            background: #7ac1d3;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        .btn:hover {
+            box-shadow: 0 2px 10px rgba(122, 193, 211, 0.3);
+        }
+
+        .app>* {
+            flex-grow: 1;
+
+            width: 0;
+            word-wrap: break-word;
+        }
+
+        #root>.to {
+            padding: 10px;
+            font-family: monospace;
+            font-size: 16px;
+            color: #eee;
+        }
+
+        #root .from {
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+
+        }
+
+        .breadcrumb {
+            padding: 10px;
+            align-items: center;
+            display: flex;
+            color: #aaa;
+        }
+
+        .breadcrumb .sep {
+            color: #eee;
+            padding: 0 5px;
+            font-size: 20px;
+            line-height: 0;
+        }
+
+        textarea {
+            background: none;
+            border: none;
+            resize: none;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 20px;
+            font-size: 16px;
+            color: #eee;
+
+        }
+
+        textarea:focus {
+            outline: none;
+        }
+
+        @media screen and (max-width: 768px) {
+            .app {
+                flex-direction: column;
+
+            }
+
+            .menu {
+                flex-wrap: wrap;
+            }
+
+            .app>* {
+                width: auto;
+                border-right: none;
+            }
+
+            .from {
+                border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        @media screen and (max-width: 555px) {
+            .unicode {
+                justify-content: space-between !important;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .cont {
+                justify-content: space-between !important;
+                width: 100%;
+            }
+        }
+
+        .switch {
+            cursor: pointer;
+            -ms-align-self: center;
+            align-self: center;
+            display: flex;
+            padding: 4px;
+            border: 2px solid #7ac1d3;
+            border-radius: 10rem;
+        }
+
+        .switch-bg {
+            display: flex;
+            width: 50px;
+            border-radius: 10rem;
+            transition: 1s all;
+            position: relative;
+        }
+
+        .switch-thumb {
+            padding: 7px;
+            transition: 1s all;
+            background: #7ac1d3;
+            border-radius: 10rem;
+
+        }
+
+        .switch .inp {
+            display: none;
+        }
+
+        .switch .inp:checked~.switch-bg .switch-thumb {
+
+            transform: translateX(50px) translateX(-100%);
+            box-shadow: 0 0 0 1px #212121;
+            background: #212121;
+        }
+
+        .cont {
+            display: -webkit-flex;
+            display: -moz-flex;
+            display: -ms-flex;
+            display: -o-flex;
+            display: flex;
+        }
+
+        .switch .inp:checked~.switch-bg {
+            background: #7ac1d3;
+        }
+
+        .unicode {
+            display: -webkit-flex;
+            display: -moz-flex;
+            display: -ms-flex;
+            display: -o-flex;
+            display: flex;
+            color: #eee;
+            font-size: 16px;
+            -ms-align-items: center;
+            align-items: center;
+        }
+
+        .unicode>span {
+            padding-right: 20px;
+        }
+        .splash
+        {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            transition: 1s all;
+            left: 0;
+            right: 0;
+            background: #212121;
+            z-index: 100;
+        }
+        .splash.loaded
+        {
+            visibility: hidden;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="splash"></div>
+    <div id="root">
+        <div class="menu">
+            <div class="unicode">
+                <span>Unicode support: </span>
+                <label class="switch">
+                    <input type="checkbox" class="inp" v-model="unicode">
+                    <div class="switch-bg">
+                        <div class="switch-thumb">
+                        </div>
+                    </div>
+                </label>
+            </div>
+            <div class="cont">
+                <div class="btn" @click="swap">SWITCH MODE</div>
+                <div class="breadcrumb">
+                    <div class="source">{{modeString[0]}}</div>
+                    <div class="sep">-></div>
+                    <div class="dest">{{modeString[1]}}</div>
+                </div>
+            </div>
+        </div>
+        <div class="app">
+            <div class="from">
+                <textarea v-model="input" spellcheck="false"></textarea>
+            </div>
+            <div class="to">
+                <div spellcheck="false" :class="errors">
+                    {{action}}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+    <script>
+        var splash = document.querySelector('.splash');
+        window.onload = function()
+        {
+            splash.classList.add('loaded');
+            setTimeout(function() {
+                splash.style.display = "none";
+            }, 1000);
+        }
+        function b64EncodeUnicode(str) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+                function toSolidBytes(match, p1) {
+                    return String.fromCharCode('0x' + p1);
+                }));
+        }
+
+        function b64DecodeUnicode(str) {
+            return decodeURIComponent(atob(str).split('').map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
+        function output(input, mode) {
+            if (mode == 0) {
+                try {
+                    return b64DecodeUnicode(input);
+                } catch (e) {
+                    throw new Error("This string is incorrect!");
+                }
+            } else {
+                return b64EncodeUnicode(input);
+            }
+        }
+
+        function output_ascii(input, mode) {
+            if (mode == 0) {
+                try {
+                    return atob(input);
+                } catch (e) {
+                    throw new Error("This string is incorrect!");
+                }
+            } else {
+                return btoa(input);
+            }
+        }
+
+        var app = new Vue({
+            el: "#root",
+            data: {
+                input: "Hello world! こんにちは世界！ 你好，世界！ Привет мир! Bonjour le monde! Hallo Welt! Ahoj světe! ",
+                mode: 1,
+                errors: '',
+                unicode: true
+            },
+            methods: {
+                swap: function () {
+                    try {
+                        if (this.unicode) {
+                            this.input = output(this.input, this.mode);
+                        } else {
+                            this.input = output_ascii(this.input, this.mode);
+                        }
+                    } catch (e) {
+                        this.input = "";
+                    }
+                    this.mode = !this.mode;
+
+                }
+            },
+            computed: {
+                modeString: function () {
+                    if (this.mode == 0) {
+                        return ["base64", "text"];
+                    } else {
+                        return ["text", "base64"];
+                    }
+                },
+                action: function () {
+                    this.errors = '';
+                    try {
+                        if (this.unicode) {
+                            return output(this.input, this.mode);
+                        } else {
+                            return output_ascii(this.input, this.mode);
+                        }
+                    } catch (e) {
+                        this.errors = 'error';
+                        return "Incorrect input!";
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
