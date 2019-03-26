@@ -314,7 +314,6 @@
                 return b64EncodeUnicode(input);
             }
         }
-
         function output_ascii(input, mode) {
             if (mode == 0) {
                 try {
@@ -334,6 +333,17 @@
                 mode: 1,
                 errors: '',
                 unicode: true
+            },
+            mounted: function()
+            {
+                this.input = window.localStorage.getItem('input');
+
+                var _this = this;
+                window.onbeforeunload = function()
+                {
+                    console.log(_this.input);
+                    window.localStorage.setItem('input', _this.input);
+                }
             },
             methods: {
                 swap: function () {
