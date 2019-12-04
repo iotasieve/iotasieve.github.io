@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+  <style>
+    .editor {
+      display: flex;
+      align-items: stretch;
+      height: 100%;
+      
+
+    }
+
+    #code
+    {
+      flex: 1;
+      margin:10px;
+    }
+    body
+    {
+      height: 100vh;
+      margin: 0;
+    }
+    #out
+    {
+      margin:10px;
+      margin-left: 0px;
+      flex: 1;
+      border: 1px solid #ccc;
+    }
+    
+    button
+    {
+      position: absolute;
+      left: 50%;
+      transform: translate(-50%);
+    }
+    
+  </style>
+</head>
+<body>
+    <button onclick="compile()">Compile</button>
+  <div class="editor">
+    <textarea name="" id="code" cols="30" rows="10"></textarea>
+    <div id="out"></div>
+    <script>
+      document.getElementById("code").value = "import core;\n\nmain()\n{\n  core.Console.log(\"Hello, world!\")\n}"
+      function compile()
+      {
+        location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+      }
+    </script>
+  </div>
+</body>
+</html>
