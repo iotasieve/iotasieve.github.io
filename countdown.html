@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+</head>
+<body>
+  Waiting for godot...
+  <span id="timestamp"></span>
+  <script>
+    setInterval(() => {
+      document.getElementById("timestamp").innerHTML = ~~(new Date(new Date("01.04.2020") - Date.now()).getTime()/1000)
+    },1000)
+  </script>
+</body>
+</html>
