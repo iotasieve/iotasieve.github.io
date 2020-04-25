@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flsh</title>
+    <style>
+        .split {
+            display: flex;
+        }
+        .split .inner
+        {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            
+
+        }
+        textarea {
+            resize: none;
+            height: 480px;
+        }
+        .subtn {
+            width: 100px;
+        }
+        canvas {
+            padding: 2px;
+            border: 1px solid #ccc;
+            flex: 0;
+            height: 480px;
+        }
+        @media screen and (max-width: 1000px)
+        {
+            .split {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="split">
+        <div class="inner">
+            <textarea name="code" id="code" cols="30" rows="10">(do
+            </textarea>
+            <button class="subtn">Run</button>
+        </div>
+        <canvas id="cv" width="640" height="480"></canvas>
+    </div>
+    <script>
+        const code = `(do
+    (def [x] 0)
+    (def [y] 0)
+    (def [vx] 10)
+    (def [vy] 10)
+    (def [speed] 0)
+    (def [hue] 0)
+    (draw-update
+        [do
+            (draw-style 'rgba(256, 256, 256, 0.01)')
+            (draw-rect 0 0 640 480)
+            (draw-style (+ 'hsl(' (^ hue 0) ', 100%, 50%)'))
+            (draw-rect x y 10 10)
+
+            (if [key-get 'z']
+                [def [vx] (* vx -1)]
+                [null])
+              
+            (if [key-get 'x']
+                [def [vy] (* vy -1)]
+                [null])
+
+            (if [> x 630]
+                [def [vx] (* vx -1)]
+                [null])
+
+            (if [< x 0]
+                [def [vx] (* vx -1)]
+                [null])
+
+            (if [> y 470]
+                [def [vy] (* vy -1)]
+                [null])
+
+            (if [< y 0]
+                [def [vy] (* vy -1)]
+                [null])
+            (def [hue] (+ hue 0.1))
+            (def [speed] (+ speed 0.01))
+            (def [x] (+ x vx))
+            (def [y] (+ y vy))
+        ]
+    )
+)`;
+    document.getElementById("code").innerHTML = code;
+
+    const NodeType =
+    {
+        SEXPR: 0,
+        BEXPR: 1,
+        SYMBOL: 2,
+        NUMBER: 3,
+        STRING: 4,
+        ERROR: 5,
+        FUNC: 6,
+        INVALID: 7
+    }
+
+    class Node
+    {
+        constructor(type, value)
+        {
+            this.type = type;
+            this.value = value;
+        }
+    }
+
+    class FunctionNode
+    {
+        constructor(builtin, params, ptr)
+        {
+            this.builtin = builtin;
+            this.params = params;
+            this.ptr = ptr;
+        }
+    }
+
+    class Parser 
+    {
+        parseProgram(str)
+        {
+            let context = {
+                pos: 0,
+                src: str
+            }
+            let res = [];
+            while (context.pos < context.src.length)
+            {   
+                let a;
+                a = this.determineAndParse(context);
+
+                if (a)
+                {
+                    res.push(a);
+                }
+                else
+                {
+                    break;
+                }
+                
+            }
+            return res;
+        }
+
+        newError(context, text)
+        {
+            console.log("Context", context.src.slice(context.pos));
+            console.log(context.src.slice(context.pos).split("\n"))
+            throw new Error("[Parser] : "+text+" at line "+context.src.slice(0, context.pos).split("\n").length)
+        }
+
+        determineAndParse(context)
+        {   
+            while (context.src.slice(context.pos).search(/[\s\n]/) == 0) 
+            {
+                context.pos += 1;
+            }
+            if (context.src[context.pos] == ")")
+            {
+                this.newError(context, "Stray )")
+            }
+            if (context.src[context.pos] == "]")
+            {
+                this.newError(context, "Stray ]")
+            }
+            if (context.pos >= context.src.length) return;
+            if (context.src[context.pos] == "\'" || context.src[context.pos] == "\"") 
+            {
+                context.pos += 1;
+                return this.parseString(context, context.src[context.pos-1])
+            }
+            else if (context.src[context.pos] == "(") 
+            {
+                context.pos += 1;
+                return this.parseSexpr(context);
+            }
+            else if (context.src[context.pos] == "[") 
+            {
+                context.pos += 1;
+                return this.parseBexpr(context);
+            }
+            else if (context.src[context.pos] == '-' ?
+                    context.src.slice(context.pos+1).search(/[0-9\.]/) == 0: 
+                    context.src.slice(context.pos).search(/[0-9\.]/) == 0)
+            {
+                return this.parseNumber(context);
+            }
+            else
+            {
+                return this.parseSymbol(context)
+            }
+        }
+
+        parseSexpr(context)
+        {
+            let res = [];
+            let found = false;
+            while (context.pos < context.src.length)
+            {
+                while (context.src.slice(context.pos).search(/[\s\n]/) == 0) 
+                {
+                    context.pos += 1;
+                }
+
+                if (context.src[context.pos] == ")")
+                {
+                    found = true;
+                    context.pos += 1;
+                    break;
+                }
+                
+                res.push(this.determineAndParse(context))
+            }
+            if (!found) return this.newError(context, "Unexpected EOF for S-expr");
+            return new Node(NodeType.SEXPR, res);
+        }
+
+        parseBexpr(context)
+        {
+            let res = [];
+            let found = false;
+            while (context.pos < context.src.length)
+            {
+                while (context.src.slice(context.pos).search(/[\s\n]/) == 0) 
+                {
+                    context.pos += 1;
+                }
+
+                if (context.src[context.pos] == "]")
+                {
+                    found = true;
+                    context.pos += 1;
+                    break;
+                }
+                
+                res.push(this.determineAndParse(context))
+            }
+            if (!found) return this.newError(context, "Unexpected EOF for B-expr");
+            return new Node(NodeType.BEXPR, res);
+        }
+
+        parseSymbol(context)
+        {
+            let r = context.src.slice(context.pos).search(/[\n\s\)\]]/);       
+
+            if (r === -1)
+            {
+                return this.newError(context, "Unexpected EOF For symbol");
+            }
+            if (context.src.slice(context.pos, context.pos+r).search(/[\[\]]/) !== -1)
+            {
+                return this.newError(context, "Disallowed characters for Symbol");
+            }       
+            let sym = context.src.slice(context.pos, context.pos+r);
+            context.pos += r;
+            return new Node(NodeType.SYMBOL, sym);
+        }
+
+        parseNumber(context)
+        {
+            let r = context.src.slice(context.pos).search(/[\n\s\)\]]/);
+            
+            if (r === -1)
+            {
+                return this.newError(context, "Unexpected EOF For number");
+            }
+            if (context.src.slice(context.pos, context.pos+r).search(/[^0-9\x\b\.\+\-]/) !== -1)
+            {
+                return this.newError(context, "Disallowed characters for Number");
+            }
+
+            let str = context.src.slice(context.pos, context.pos+r);
+            context.pos += r;
+            if (str.search("0x") == 0)
+            {
+                return new Node(NodeType.NUMBER, parseInt(str.slice(2), 16));
+            }
+            else if (str.search("0b") == 0)
+            {
+                return new Node(NodeType.NUMBER, parseInt(str.slice(2), 2));
+            }
+            return new Node(NodeType.NUMBER, parseFloat(str));
+        }
+
+        parseString(context, strstart)
+        {
+            let r = context.src.slice(context.pos).search(strstart);
+            if (r === -1)
+            {
+                return this.newError(context, "Unexpected EOF For String");
+            }
+            
+            let str = context.src.slice(context.pos, context.pos+r);
+            context.pos += r+1;
+            return new Node(NodeType.STRING, str);
+        }
+    }
+
+    class Env
+    {
+        constructor()
+        {
+            this.runtime = null;
+            this.symbols = {};
+            this.parent = null;
+        }
+
+        getSym(symname)
+        {
+            let s = this.symbols[symname];
+            if (!s)
+            {
+                if (this.parent == null)
+                {
+                    return null;
+                }
+                else
+                {
+                    return this.parent.getSym(symname);
+                }
+            }
+            return s;
+        }
+
+        setSym(symname, value)
+        {
+            this.symbols[symname] = value;
+            return value;
+        }
+
+        setFunction(symname, value)
+        {
+            this.symbols[symname] = new Node(NodeType.FUNC, new FunctionNode(true, [], value))
+        }
+    }
+
+    class Runtime
+    {   
+        constructor(env)
+        {
+            this.env = env;
+        }
+
+        newError(env, err)
+        {
+            throw new Error("[Runtime] : "+err);
+            return null;
+        }
+
+        run(prog)
+        {
+            let ret;
+            for (let i = 0; i < prog.length; i++)
+            {
+                if (prog[i].type !== NodeType.SEXPR)
+                {
+                    this.newError(env, "Expected expression");
+                }
+                ret = this.evalSexpr(this.env, prog[i]);
+            }
+            return ret;
+        }
+
+        evalSexpr(env, sexpr_)
+        {
+            if (sexpr_.value.length < 1) return this.newInvalid();
+            let sexpr = JSON.parse(JSON.stringify(sexpr_));
+
+            for (let i = 0; i < sexpr.value.length; i++)
+            {
+                if (sexpr.value[i].type === NodeType.SEXPR)
+                {
+                    sexpr.value[i] = this.evalSexpr(env, sexpr.value[i])
+                }
+                else if (sexpr.value[i].type === NodeType.SYMBOL)
+                {
+                    let oldn = sexpr.value[i].value;
+
+                    sexpr.value[i] = env.getSym(sexpr.value[i].value);
+                    
+                    if (!sexpr.value[i])
+                    {
+                        this.newError(env, "Undefined symbol "+oldn+" if you want a string, wrap it in '' like that '"+oldn+"'");
+                    }
+                }
+            }
+
+            if(sexpr.value.length < 2 && sexpr.value[0].type !== NodeType.FUNC) return sexpr.value[0];
+
+            let sym;
+            sym = sexpr.value[0]
+
+            sym = sym.value;
+            
+            if (sym === null || sym === undefined)
+            {
+                this.newError(env, `Attempt to call on null`);
+            }
+            if (sexpr.value[0].type !== NodeType.FUNC)
+            {
+                this.newError(env, "Expected function");
+            }
+            
+            if (sexpr.value[0].value.builtin)
+                return sym.ptr(env, sexpr);
+            else {
+                let _env = new Env();
+                let ongoing = false;
+                _env.parent = env;
+                _env.runtime = env.runtime;
+                for (let i = 0; i < sym.params.value.length; i++)
+                {
+                    if (sym.params.value[i].value == '@')
+                    {
+                        ongoing = true;
+                        continue;
+                    }
+                    if (!ongoing)
+                        _env.setSym(sym.params.value[i].value, sexpr.value[i+1])
+                    else
+                        _env.setSym(sym.params.value[i].value, new Node(NodeType.BEXPR, sexpr.value.slice(i)))
+                        
+                }
+                return this.evalSexpr(_env, sym.ptr);
+            }
+        }
+
+        dump(node)
+        {
+            let res = "";
+            if (!node) return "null";
+            if (node.type == NodeType.SEXPR)
+            {
+                res += "(";
+                for (let i = 0; i < node.value.length; i++)
+                {
+                    if (i !== 0) res += " ";
+                    res += this.dump(node.value[i]);
+                }
+                res += ")";
+            }
+            else if (node.type == NodeType.BEXPR)
+            {  
+                res += "[";
+                for (let i = 0; i < node.value.length; i++)
+                {
+                    if (i !== 0) res += " ";
+                    res += this.dump(node.value[i]);
+                }
+                res += "]";
+            }
+            else if (node.type == NodeType.SYMBOL)
+            {
+                res = node.value;
+            }
+            else if (node.type == NodeType.STRING)
+            {
+                res = node.value;
+            }
+            else if (node.type == NodeType.NUMBER)
+            {
+                res = node.value;
+            }
+            else if (node.type == NodeType.FUNC)
+            {
+                if (node.value.builtin)
+                {
+                    return "<built-in function>";
+                }
+                else 
+                {
+                    res = "fn "+this.dump(node.value.params);
+                }
+            }
+            return res;
+        }
+
+        newInvalid()
+        {
+            return new Node(NodeType.INVALID, null);
+        }
+    }
+
+    let fl = new Parser();
+    let env = new Env();
+
+    let rets = "";
+
+    env.setFunction("say", (env, list) => {
+        let v = env.runtime.dump(list.value[1])+"\n";
+        rets += v;
+        return new Node(NodeType.STRING, v);
+    })
+
+    env.setFunction("+", (env, list) => {
+        return new Node(NodeType.STRING, list.value.slice(2).reduce((a, b) => a + b.value, list.value[1].value));
+    })
+
+    env.setFunction("-", (env, list) => {
+        
+        return new Node(NodeType.STRING, list.value.slice(2).reduce((a, b) => a - b.value, list.value[1].value));
+    })
+
+    env.setFunction("*", (env, list) => {
+        return new Node(NodeType.STRING, list.value.slice(1).reduce((a, b) => a * b.value, 1));
+    })
+
+    env.setFunction("/", (env, list) => {
+        return new Node(NodeType.STRING, list.value.slice(2).reduce((a, b) => a / b.value, list.value[1].value));
+    })
+
+    env.setFunction("%", (env, list) => {
+        return new Node(NodeType.STRING, list.value.slice(2).reduce((a, b) => a % b.value, list.value[1].value));
+    })
+
+    env.setFunction("^", (env, list) => {
+        return new Node(NodeType.STRING, list.value.slice(2).reduce((a, b) => a ^ b.value, list.value[1].value));
+    })
+
+
+    env.setFunction("=", (env, list) => {
+        return env.setSym(list.value[1].value[0].value, list.value[2]);
+    })
+
+    env.setFunction("<", (env, list) => {
+        return new Node(NodeType.NUMBER, list.value[1].value < list.value[2].value);
+    })
+
+    env.setFunction(">", (env, list) => {
+        return new Node(NodeType.NUMBER, list.value[1].value > list.value[2].value);
+    })
+
+    env.setFunction("==", (env, list) => {
+        return new Node(NodeType.NUMBER, list.value[1].value == list.value[2].value);
+    })
+
+    env.setFunction("eval", (env, list) => {
+        return env.runtime.evalSexpr(env, list.value[1]);
+    })
+
+    env.setFunction("list", (env, list) => {
+        return new Node(NodeType.BEXPR, list.value.slice(1));
+    })
+
+    env.setFunction("first", (env, list) => {
+        return new Node(NodeType.BEXPR, [list.value[1].value[0]]);
+    })
+
+    env.setFunction("nth", (env, list) => {
+        return new Node(NodeType.BEXPR, [list.value[1].value[list.value[2].value]]);
+    })
+
+    env.setFunction("len", (env, list) => {
+        return new Node(NodeType.NUMBER, list.value[1].value.length);
+    })
+
+
+    env.setFunction("rest", (env, list) => {
+        return new Node(NodeType.BEXPR, list.value[1].value.slice(1));
+    })
+
+    env.setFunction("attach", (env, list) => {
+        list.value[1].value.push(list.value[2].value)
+        list.value[1].value = list.value[1].value.flat();
+        return list.value[1]
+    })
+
+
+    env.setFunction("rand", (env, list) => {
+        return new Node(NodeType.NUMBER, Math.random());
+    })
+
+
+
+    env.setFunction("if", (env, list) => {
+        if (env.runtime.evalSexpr(env, list.value[1]).value)
+        {
+            return env.runtime.evalSexpr(env, list.value[2]);
+        }
+        else 
+        {
+            return env.runtime.evalSexpr(env, list.value[3]);
+        }
+    })
+
+    env.setFunction("while", (env, list) => {
+        let iters = 0;
+        
+        while (env.runtime.evalSexpr(env, list.value[1]).value)
+        {
+            if (iters > 100000) throw new Error("[Runtime] : Too many loop iterations");
+            env.runtime.evalSexpr(env, list.value[2]);
+            iters += 1;
+        }
+        
+        return env.runtime.newInvalid();
+    })
+
+    env.setFunction("def", (_env, list) => {
+        let env = _env;
+
+        while (env.parent)
+        {
+            env = env.parent;
+        }
+        
+        return env.setSym(list.value[1].value[0].value, list.value[2])
+    })
+
+
+    env.setFunction("$", (env, list) => {
+        let idx = list.value[1].value.findIndex(e => e.value == '@');
+        if (idx !== -1 && !list.value[1].value[idx+1]) env.runtime.newError(env, "Stray @");
+        return new Node(NodeType.FUNC, new FunctionNode(false, list.value[1], list.value[2]));
+    })
+
+    env.setFunction("nop", (env, list) => {
+        return env.runtime.newInvalid();
+    })
+
+
+
+    let rt = new Runtime(env);
+    env.runtime = rt;
+    let res = fl.parseProgram(`
+    (def [fn] ($ [params body] [def (first params) ($ (rest params) body)]))
+    (fn [do @ lst] [eval (nth lst (+ (len lst) -1))])
+    (fn [randfrom lst] [nth lst (^ (* (rand) (len lst)) 0)])
+
+    (def [null] 0)
+    `);
+    rt.run(res);
+
+    let pendingMsg;
+
+    let canvas = document.getElementById("cv");
+
+    canvas.width = 640;
+    canvas.height = 480;
+
+    let ctx = canvas.getContext("2d");
+
+    env.setFunction("draw-style", (env, list) => {
+        ctx.fillStyle = list.value[1].value;
+        return env.runtime.newInvalid();
+    })
+
+    env.setFunction("draw-rect", (env, list) => {
+        ctx.fillRect(list.value[1].value, list.value[2].value, list.value[3].value, list.value[4].value);
+        return env.runtime.newInvalid();
+    })
+
+    env.setFunction("draw-font", (env, list) => {
+        ctx.font = list.value[1].value;
+        return env.runtime.newInvalid();
+    })
+
+    env.setFunction("draw-text", (env, list) => {
+        ctx.fillText(list.value[1].value, list.value[2].value, list.value[3].value);
+        return env.runtime.newInvalid();
+    })
+    let intv = null;
+    let msgc = 0;
+    env.setFunction("draw-update", (env, list) => {
+        intv = setInterval(
+            () => {
+                try {
+                    env.runtime.evalSexpr(env, list.value[1])
+                } catch (e) {
+                    msgc += 1;
+                    let p = document.createElement("pre");
+                    p.style.color = "crimson";
+                    p.innerHTML = e.message;
+                    if (msgc > 100)
+                    {
+                        p.innerHTML = "Too many errors, please fix your code. Contact me if it shows javascript error message (starting with [...] are non-javascript)."
+                        clearInterval(intv);
+                    }
+                    document.body.appendChild(p);
+                }
+            },
+            1000/60
+        )
+
+        return env.runtime.newInvalid();
+    })
+
+    let keys = {};
+
+    window.onkeydown = window.onkeyup = (e) => {
+        keys[e.key] = e.type == "keydown";
+    }
+
+    env.setFunction("key-get", (env, list) => {
+        let key = keys[list.value[1].value];
+        if (key === undefined)
+        {
+            return new Node(NodeType.NUMBER, 0);
+        }
+        return new Node(NodeType.NUMBER, key);
+    })
+
+    document.querySelector(".subtn").onclick = () =>
+    {
+        msgc = 0;
+        document.querySelectorAll("pre").forEach(e => {
+            document.body.removeChild(e);
+        })
+        ctx.clearRect(0, 0, 640, 480);
+        if (intv !== null) clearInterval(intv);
+        intv = null;
+        try {
+            console.log(
+                rt.dump(
+                    rt.run(
+                        fl.parseProgram(
+                            document.getElementById("code").value
+                        )
+                    )
+                )
+            );
+        } catch (e) {
+            let p = document.createElement("pre");
+            p.style.color = "crimson";
+            p.innerHTML = e.message;
+            document.body.appendChild(p);
+        }
+
+    }
+
+
+
+    </script>
+</body>
+</html>
