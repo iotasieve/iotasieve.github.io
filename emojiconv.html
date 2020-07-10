@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>v2</title>
 </head>
 <body>
     <form onsubmit="processFile(event)">
@@ -104,13 +104,13 @@
             
             img.onload = () =>
             {
-                let granularityX = img.width/14;
+                let granularityX = img.width/13;
                 let granularityY = img.height/16;
                 
 
                 for (let i = 0; i < 16; i += 1)
                 {
-                    for (let j = 0; j < 14; j += 1)
+                    for (let j = 0; j < 13; j += 1)
                     {
                         document.getElementById("output").innerHTML += nearColor(getPixel(img, ~~(j*granularityX), ~~(i*granularityY)))
                     }
