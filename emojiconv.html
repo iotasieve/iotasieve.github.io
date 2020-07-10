@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form onsubmit="processFile(event)">
+        <input type="file" name="file" id="file">
+        <button>Process</button>
+    </form>
+    <p>Output: (If character limit reached, copy by copying batches of each)</p>
+    <textarea id="output">
+
+    </textarea>
+    <script>
+        const colors = [
+            ":black_large_square:", 
+            ":new_moon:", 
+            ":white_large_square:", 
+            ":izakaya_lantern:", 
+            ":red_square:", 
+            ":brown_square:", 
+            ":u7533:", 
+            ":orange_square:", 
+            ":yellow_square:", 
+            ":evergreen_tree:", 
+            ":green_square:", 
+            ":pear:", 
+            ":ballot_box_with_check:", 
+            ":blue_square:", 
+            ":milky_way:", 
+            ":purple_square:"
+        ]
+
+        const mappings = [
+            [0x31, 0x37, 0x3d],
+            [0x66, 0x75, 0x7f],
+            [0xe6, 0xe7, 0xe8],
+            [0xce, 0x24, 0x3b],
+            [0xdd, 0x2e, 0x44],
+            [0xc1, 0x69, 0x4f],
+            [0xf4, 0x90, 0x0c],
+            [0xff, 0xac, 0x33],
+            [0xfd, 0xcb, 0x58],
+            [0x4e, 0x82, 0x31],
+            [0x78, 0xb1, 0x59],
+            [0xa6, 0xd3, 0x88],
+            [0x22, 0x66, 0x99],
+            [0x55, 0xac, 0xee],
+            [0x74, 0x4e, 0xaa],
+            [0xaa, 0x8e, 0xd6]
+        ]
+        var canvas = document.createElement('canvas');
+        canvas.width = 2048;
+        canvas.height = 2048;
+        var context = canvas.getContext('2d');
+
+
+        function getPixel(img, x, y) 
+        {
+            context.drawImage(img, 0, 0);
+            return context.getImageData(x, y, 1, 1).data;
+        }
+
+        function similarity(v1, v2)
+        {
+            // Distance
+            return Math.sqrt(v1.map((e, i) => (v2[i] - e)**2).reduce((a, b) => a + b, 0));
+        }
+
+        function nearColor(col)
+        {
+            if (col[3] < 100) return colors[2];
+            let rgb = [col[0], col[1], col[2]]
+            let mostDistance = 9999999999
+            let mostSimilar = 0
+            for (let i = 0; i < 16; i += 1)
+            {
+                let check = similarity(rgb, mappings[i])
+
+                if (check < mostDistance)
+                {
+                    mostDistance = check
+                    mostSimilar = i
+                }
+            }
+
+            return colors[mostSimilar]
+        }
+        /**
+         * 
+         * @param {SubmitEvent} e 
+         */
+        function processFile(e)
+        {
+            e.preventDefault()
+
+            let file = document.getElementById("file").files[0]
+            let img = new Image()
+            img.src = URL.createObjectURL(file)   
+            
+            
+            img.onload = () =>
+            {
+                let granularityX = img.width/14;
+                let granularityY = img.height/16;
+                
+
+                for (let i = 0; i < 16; i += 1)
+                {
+                    for (let j = 0; j < 14; j += 1)
+                    {
+                        document.getElementById("output").innerHTML += nearColor(getPixel(img, ~~(j*granularityX), ~~(i*granularityY)))
+                    }
+                    document.getElementById("output").innerHTML += "\n";
+                }
+            }
+            img.onerror = () => 
+            {
+                alert("Invalid image")
+            }
+
+            return false;
+        }
+
+    </script>
+</body>
+</html>
