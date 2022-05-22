@@ -1,0 +1,38 @@
+body {
+    margin: 0;
+
+    font-family: monospace;
+}
+
+.background {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+
+    background: linear-gradient(to bottom, #000, #223);
+    z-index: -1;
+}
+
+.content {
+    padding: 1px;
+    margin: 30px 20%;
+    overflow: hidden;
+
+    background: rgba(255, 255, 255, 0.8);
+    color: #000;
+}
+
+header {
+    padding: 10px;
+    overflow: hidden;
+    font-size: 2em;
+
+    background: linear-gradient(to bottom, #000, #112);
+    color: white;
+}
+
+article {
+    margin: 10px;
+}
