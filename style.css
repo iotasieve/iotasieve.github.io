@@ -36,3 +36,32 @@ header {
 article {
     margin: 10px;
 }
+
+nav {
+    border-bottom: 1px solid black;
+}   
+
+nav > ul {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0;
+    padding: 0;
+    background: #99F;
+}
+
+nav > ul > li.sel {
+    background: linear-gradient(to left, transparent 20%, #112 70%), linear-gradient(to top, transparent, #112);
+    border-left: 1px solid black;
+    flex: 1;
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    padding: 10px;
+}
+
+nav > ul > li {
+    border-left: 1px solid black;
+    display: flex;
+    padding: 10px;
+}
