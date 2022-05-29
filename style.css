@@ -2,6 +2,7 @@ body {
     margin: 0;
 
     font-family: monospace;
+    font-size: 16px;
 }
 
 .background {
@@ -39,6 +40,7 @@ article {
 
 nav {
     border-bottom: 1px solid black;
+    align-items: center;
 }   
 
 nav > ul {
@@ -55,7 +57,7 @@ nav > ul > li.sel {
     flex: 1;
     color: #fff;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 20px;
     display: flex;
     padding: 10px;
 }
@@ -63,5 +65,6 @@ nav > ul > li.sel {
 nav > ul > li {
     border-left: 1px solid black;
     display: flex;
+    align-items: center;
     padding: 10px;
 }
